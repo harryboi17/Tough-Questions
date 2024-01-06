@@ -4,7 +4,6 @@
 #define loop(i,s,e) for(ll i = s; s<e ? i < e : i >= e; s<e ? i++ : i--)
 #define forrr(i,s,e) for(ll i = s; i >= e; i--)
 #define forr(i,s,e) for(ll i = s; i < e; i++)
-#define vi vector<int>
 #define vl vector<ll>
 #define vvl vector<vl>
 #define pll pair<ll, ll>
@@ -17,8 +16,6 @@
 #define Rand(arr, n) generate_n(arr.begin(), n, random)
 #define fastio() ios_base::sync_with_stdio(false);cin.tie(NULL);cout.tie(NULL)
 #define testt ll t = 1; cin>>t; while(t--)
-#define getMax(x) max_element(x.begin(),x.end())
-#define getMin(x) min_element(x.begin(),x.end())
 #ifndef ONLINE_JUDGE
 #define debug(x) cerr << #x <<" "; _print(x); cerr << endl;
 #else
@@ -29,8 +26,12 @@ using namespace std;
 template<class T> void _print(T t) {cerr << t;}
 template <class T, class V> void _print(pair <T, V> p) {cerr << "{"; _print(p.ff); cerr << ","; _print(p.ss); cerr << "}";}
 template <class T> void _print(vector <T> v) {cerr << "[ "; for (T i : v) {_print(i); cerr << " ";} cerr << "]";}
-template <class T> void _print(set <T> v) {cerr << "[ "; for (T i : v) {_print(i); cerr << " ";} cerr << "]";}
-template <class T, class V> void _print(map <T, V> v) {cerr << "[ "; for (auto i : v) {_print(i); cerr << " ";} cerr << "]";}
+template <class T> void _print(priority_queue<T> pq) {cerr << "[ "; vector<T> v; while(!pq.empty()){ v.push_back(pq.top()); pq.pop();} for (auto i : v) {_print(i); cerr << " ";} cerr << "]";}
+template <class T> void _print(priority_queue<T, vector<T>, greater<T>> pq) {cerr << "[ "; vector<T> v; while(!pq.empty()){ v.push_back(pq.top()); pq.pop();} for (auto i : v) {_print(i); cerr << " ";} cerr << "]";}
+template <class T> void _print(set <T> st) {cerr << "[ "; for (auto it = st.begin(); it != st.end(); it++) {_print(*it); cerr << " ";} cerr << "]";}
+template <class T> void _print(multiset <T> st) {cerr << "[ "; for (auto it = st.begin(); it != st.end(); it++) {_print(*it); cerr << " ";} cerr << "]";}
+template <class T, class V> void _print(map <T, V> mp) {cerr << "[ "; for (auto it = mp.begin(); it != mp.end(); it++) {_print(*it); cerr << " ";} cerr << "]";}
+template <class T, class V> void _print(multimap <T, V> mp) {cerr << "[ "; for (auto it = mp.begin(); it != mp.end(); it++) {_print(*it); cerr << " ";} cerr << "]";}
 
 template<typename F, typename S> ostream& operator <<(ostream& ostream, pair<F, S>& p) { cout << p.first << " " << p.second<<" "; return ostream; }
 template<typename T> ostream& operator <<(ostream& ostream, vector<T>& v) { for(auto& element : v) cout << element << " "; return ostream;}
@@ -50,22 +51,31 @@ ll maxPow2(ll n){n |= n >> 1; n |= n >> 2; n |= n >> 4; n |= n >> 8; n |= n >> 1
 //vl sieve(){vl primes; for(ll i=0;i<1000001;i++) prime[i]=true; for(ll i=2;i<1000001;i++){ if(!prime[i]) continue; primes.pb(i); for(ll j=2;i*j<1000001;j++) prime[i*j]=false;} return primes;}
 vp primeFactors(ll n){ vp v; for (ll j = 2; j <= sqrtl(n); j++){ ll cnt = 0; while(n%j == 0) n /= j, cnt++; if(cnt)v.pb({j,cnt}); } if(n!=1) v.pb({n,1}); return v;}
 
-// ll dx[] = {0, 0, 1, 1, 1, -1, -1, -1};
-// ll dy[] = {1, -1, 1, -1, 0, 1, -1, 0};
 
 /*
-add x in l r
-divide by 2 in l r
+given q query
+l r x - make arr[i] -> max(arr[i]-x, 0);
+return number of 0 in array, after each query;
 */
 
 const int N = 1e5 + 2;
-ll trees[N*4], parity[N*4];
-vvl lazy(N*4, vl(3));
+struct Trees{
+    vector<int> arr;
+    int lazy = 0, change = 0;
+};
+Trees trees[4*N];
+
+void init(int n){
+    forr(i,0,4*n){
+        trees[i].arr.clear();
+        trees[i].lazy = 0;
+        trees[i].change = 0;
+    }
+}
 
 void build(int node, int st, int en, vl &arr){ //built in O(2n -1) time
     if(st == en){
-        trees[node] = arr[st];
-        if(arr[st]%2) parity[node] += 1;
+        trees[node].arr.pb(arr[st]);
         return;
     }
 
@@ -73,106 +83,74 @@ void build(int node, int st, int en, vl &arr){ //built in O(2n -1) time
     build(2*node, st, mid, arr);
     build(2*node + 1, mid+1, en, arr);
 
-    trees[node] = trees[2*node] + trees[2*node + 1];
-    parity[node] = parity[2*node] + parity[2*node + 1];
+	merge(all(trees[2*node].arr), all(trees[2*node+1].arr), back_inserter(trees[node].arr));
 }
 
-void change(ll node){
-    lazy[node][1] += lazy[node/2][1];
-    lazy[node][1] %= 2;
-
-    if(lazy[node/2][2]){
-        lazy[node][1] += lazy[node][0];
-        lazy[node][1] %= 2;
-        lazy[node][0] = 0;
-    }
-
-    lazy[node][2] |= lazy[node/2][2];
-    lazy[node][0] += lazy[node/2][0];
-}
-
-void lazyUpdate(ll node, ll st, ll en){
-    if(lazy[node] == vl{0,0,0}) return;
-
-    if(lazy[node][1]) parity[node] = (en-st+1) - parity[node];
-    if(lazy[node][2]) trees[node] = parity[node];
-    trees[node] += (en-st+1)*lazy[node][0];
-    if(lazy[node][0]%2) parity[node] = (en-st+1) - parity[node];
+void lazyUpdate(int node, int st, int en){
+    if(!trees[node].lazy) return;
+    trees[node].change += trees[node].lazy;
 
     if(st != en){
-        change(2*node);
-        change(2*node+1);
+        trees[2*node].lazy += trees[node].lazy;
+        trees[2*node+1].lazy += trees[node].lazy;
     }
-
-    lazy[node] = vl{0,0,0};
+    trees[node].lazy = 0;
 }
 
-ll query(int node, int st, int en, ll &l, ll &r){
+ll query(int node, int st, int en, int l, int r){ //done in log(n) time
     lazyUpdate(node, st, en);
-
-    if(st > r || en < l)
-        return 0;
+    if(st > r || en < l) return 0;
     
-    if(l <= st && r >= en) // l... st...en ...r
-        return trees[node];
+    if(l <= st && r >= en)
+        return upper_bound(all(trees[node].arr), trees[node].change) - trees[node].arr.begin();
     
     int mid = (st + en)/2;
 
     ll q1 = query(2*node, st, mid, l, r);
     ll q2 = query(2*node + 1, mid+1, en, l, r);
 
-    trees[node] = trees[2*node] + trees[2*node + 1];
-    parity[node] = parity[2*node] + parity[2*node + 1];
-
     return q1 + q2;
 }
 
-void update(int node, int st, int en, ll &l, ll &r, ll &val, ll &type){
+ll update(int node, int st, int en, int l, int r, int val){ //done in log(n) time
     lazyUpdate(node, st, en);
-
-    if(st > r || en < l) return;
+    if(st > r || en < l) return 0;
+    
     if(l <= st && r >= en){
-        if(type == 1) lazy[node][2] = 1;
-        if(type == 2) lazy[node][0] += val;
+        ll prev = upper_bound(all(trees[node].arr), trees[node].change) - trees[node].arr.begin();
+        trees[node].lazy += val;
         lazyUpdate(node, st, en);
-        return;
+        ll curr = upper_bound(all(trees[node].arr), trees[node].change) - trees[node].arr.begin();
+        return curr - prev;
     }
-
+    
     int mid = (st + en)/2;
-    update(2*node, st, mid, l, r, val, type);
-    update(2*node + 1, mid+1, en, l, r, val, type);
 
-    trees[node] = trees[2*node] + trees[2*node + 1];
-    parity[node] = parity[2*node] + parity[2*node + 1];
+    ll u1 = update(2*node, st, mid, l, r, val);
+    ll u2 = update(2*node + 1, mid+1, en, l, r, val);
+    return u1 + u2;
 }
 
 void solve(){
-    ll n,q; cin>>n>>q;
+    ll n; cin>>n;
     vl arr(n); cin>>arr;
+
+    init(n+1);
     build(1,0,n-1,arr);
 
+    ll q; cin>>q;
+    ll ans = 0;
     while(q--){
-        ll type; cin>>type;
-        ll l, r; cin>>l>>r;
-        l--, r--;
-        ll x = 0;
-        if(type == 3){
-            cout<<query(1, 0, n-1, l, r)<<endl;
-        }
-        else if(type == 2){
-            cin>>x;
-            update(1, 0, n-1, l, r, x, type);
-        }
-        else{
-            update(1,0,n-1,l,r,x,type);
-        }
+        ll l,r,x; cin>>l>>r>>x; l--,r--;
+        ans += update(1,0,n-1,l,r,x);
+        cout<<ans<<" ";
     }
+    cout<<endl;
 }
 
 int main(){
 fastio(); srand(time(NULL));
-// testt{ solve(); }
-solve();
+testt{ solve(); }
 return 0;
 }
 /* use __lg(number) to get nearest power of 2 -> 8,9,10..15 returns 3, 16-31 returns 4*/
